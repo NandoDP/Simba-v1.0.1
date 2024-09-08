@@ -37,50 +37,57 @@ class SimbaAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    var posts = <Post>[];
+    // var posts = <Post>[];
     return StreamProvider<UserM?>.value(
       value: AuthenticationService().user,
       initialData: null,
       child: StreamProvider<List<Post>>.value(
         value: PostService().posts,
         initialData: const [],
-        builder: (context, child) {
-          posts = Provider.of<List<Post>>(context);
-          final futures = {
-            for (var e in posts)
-              if (e.date.compareTo(DateTime.now()) >= 0) e
-          };
-          final pastes = {
-            for (var e in posts)
-              if (e.date.compareTo(DateTime.now()) < 0) e
-          };
-          return MultiProvider(
-            providers: [
-              ChangeNotifierProvider<PostStore>.value(
-                value: PostStore(
-                  categories: <String, Set<Post>>{
-                    'A venir': futures,
-                    'Passées': pastes,
-                  },
+        child: Builder(
+          builder: (context) {
+            final posts = Provider.of<List<Post>>(context);
+
+            final futures = {
+              for (var e in posts)
+                if (e.date.compareTo(DateTime.now()) >= 0) e
+            };
+            final pastes = {
+              for (var e in posts)
+                if (e.date.compareTo(DateTime.now()) < 0) e
+            };
+
+            return MultiProvider(
+              providers: [
+                ChangeNotifierProvider<PostStore>(
+                  create: (_) => PostStore(
+                    categories: <String, Set<Post>>{
+                      'A venir': futures,
+                      'Passées': pastes,
+                    },
+                  ),
                 ),
+                ChangeNotifierProvider<StatesStore>(
+                  create: (_) => StatesStore(),
+                ),
+              ],
+              child: Selector<StatesStore, ThemeMode>(
+                selector: (context, postStore) => postStore.themeMode,
+                builder: (context, themeMode, child) {
+                  return MaterialApp.router(
+                    debugShowCheckedModeBanner: false,
+                    routeInformationParser: _routeInformationParser,
+                    routerDelegate: _routerDelegate,
+                    themeMode: themeMode,
+                    title: 'Simba',
+                    darkTheme: buildSimbaDarkTheme(context),
+                    theme: buildSimbaLightTheme(context),
+                  );
+                },
               ),
-            ],
-            child: Selector<PostStore, ThemeMode>(
-              selector: (context, emailStore) => emailStore.themeMode,
-              builder: (context, themeMode, child) {
-                return MaterialApp.router(
-                  debugShowCheckedModeBanner: false,
-                  routeInformationParser: _routeInformationParser,
-                  routerDelegate: _routerDelegate,
-                  themeMode: themeMode,
-                  title: 'Simba',
-                  darkTheme: buildSimbaDarkTheme(context),
-                  theme: buildSimbaLightTheme(context),
-                );
-              },
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
